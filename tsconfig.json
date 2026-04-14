@@ -1,0 +1,64 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "nodenext",
+    "lib": [
+      "ES2023"
+    ],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "nodenext",
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "types": [
+      "node",
+      "jest"
+    ],
+    "baseUrl": "./src",
+    "paths": {
+      "@shared/*": [
+        "shared/*"
+      ],
+      "@modules/*": [
+        "modules/*"
+      ],
+      "@config/*": [
+        "shared/config/*"
+      ],
+      "@middleware/*": [
+        "shared/middleware/*"
+      ],
+      "@utils/*": [
+        "shared/utils/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/__tests__/**"
+  ],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  }
+}
