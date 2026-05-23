@@ -38,7 +38,7 @@ app.use(httpLogger);
 app.use(compression());
 
 // Debug Request Logger
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
   const log = `[${new Date().toISOString()}] ${req.method} ${req.url}\n`;
   try {
     fs.appendFileSync(path.resolve(process.cwd(), 'api-requests.txt'), log);

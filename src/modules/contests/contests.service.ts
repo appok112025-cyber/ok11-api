@@ -72,7 +72,7 @@ export class ContestService {
       const notification = await notificationService.createNotification({ title, body });
 
       // 4. Dispatch notification to all users subscribed to the general topic
-      await notificationService.sendNotification(notification._id.toString());
+      await notificationService.sendNotification((notification as any)._id.toString());
       logger.info({ contestId: savedContest._id }, "Notification sent successfully for newly created contest");
     } catch (notificationError: any) {
       // Prevent notification dispatch errors from breaking/rolling back contest creation

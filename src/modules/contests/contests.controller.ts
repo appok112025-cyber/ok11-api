@@ -5,7 +5,7 @@ import logger from "../../shared/config/logger.js";
 /**
  * Get contests for a specific match
  */
-export const getContests = async (req: Request, res: Response) => {
+export const getContests = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { matchId } = req.query;
     const page = parseInt(req.query.page as string) || 1;
@@ -21,56 +21,56 @@ export const getContests = async (req: Request, res: Response) => {
       limit
     );
 
-    res.json({
+    return res.json({
       success: true,
       data: result,
     });
   } catch (error: any) {
     logger.error({ error: error.message }, "Error in getContests");
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
 /**
  * Create a new contest
  */
-export const createContest = async (req: Request, res: Response) => {
+export const createContest = async (req: Request, res: Response): Promise<Response> => {
   try {
     const contest = await contestService.createContest(req.body);
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: contest,
     });
   } catch (error: any) {
     logger.error({ error: error.message }, "Error in createContest");
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
 /**
  * Update an existing contest
  */
-export const updateContest = async (req: Request, res: Response) => {
+export const updateContest = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
     const contest = await contestService.updateContest(id, req.body);
     if (!contest) {
       return res.status(404).json({ error: "Contest not found" });
     }
-    res.json({
+    return res.json({
       success: true,
       data: contest,
     });
   } catch (error: any) {
     logger.error({ error: error.message }, "Error in updateContest");
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
 /**
  * Get contest by ID
  */
-export const getContestById = async (req: Request, res: Response) => {
+export const getContestById = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
     const contest = await contestService.getContestById(id);
@@ -79,24 +79,24 @@ export const getContestById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Contest not found" });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: contest,
     });
   } catch (error: any) {
     logger.error({ error: error.message }, "Error in getContestById");
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
 /**
  * Join a contest
  */
-export const joinContest = async (req: Request, res: Response) => {
+export const joinContest = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
     const entry = await contestService.joinContest(id, req.body);
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: entry,
     });
@@ -111,31 +111,31 @@ export const joinContest = async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Match has already started. You cannot join or edit squad now." });
     }
     logger.error({ error: error.message }, "Error in joinContest");
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
 /**
  * Get leaderboard
  */
-export const getLeaderboard = async (req: Request, res: Response) => {
+export const getLeaderboard = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
     const leaderboard = await contestService.getLeaderboard(id);
-    res.json({
+    return res.json({
       success: true,
       data: leaderboard,
     });
   } catch (error: any) {
     logger.error({ error: error.message }, "Error in getLeaderboard");
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
 /**
  * Delete a contest
  */
-export const deleteContest = async (req: Request, res: Response) => {
+export const deleteContest = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
     const deleted = await contestService.deleteContest(id);
@@ -144,20 +144,20 @@ export const deleteContest = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Contest not found" });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: "Contest deleted successfully",
     });
   } catch (error: any) {
     logger.error({ error: error.message }, "Error in deleteContest");
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
 /**
  * Update points for a contest
  */
-export const updatePoints = async (req: Request, res: Response) => {
+export const updatePoints = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
     const { playerPoints } = req.body;
@@ -168,20 +168,20 @@ export const updatePoints = async (req: Request, res: Response) => {
 
     const success = await contestService.updateContestPoints(id, playerPoints);
     
-    res.json({
+    return res.json({
       success,
       message: "Points updated successfully",
     });
   } catch (error: any) {
     logger.error({ error: error.message }, "Error in updatePoints");
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
 /**
  * Get user's joined entries for a match
  */
-export const getUserEntries = async (req: Request, res: Response) => {
+export const getUserEntries = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { matchId } = req.params;
     const userId = (req as any).user?._id; // Getting user from token
@@ -192,19 +192,20 @@ export const getUserEntries = async (req: Request, res: Response) => {
 
     const entries = await contestService.getUserEntries(matchId, userId);
     
-    res.json({
+    return res.json({
       success: true,
       data: entries,
     });
   } catch (error: any) {
     logger.error({ error: error.message }, "Error in getUserEntries");
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
+
 /**
  * Get all joined entries for a user across all matches
  */
-export const getAllUserEntries = async (req: Request, res: Response) => {
+export const getAllUserEntries = async (req: Request, res: Response): Promise<Response> => {
   try {
     const userId = (req as any).user?._id;
 
@@ -214,12 +215,12 @@ export const getAllUserEntries = async (req: Request, res: Response) => {
 
     const entries = await contestService.getAllUserEntries(userId);
     
-    res.json({
+    return res.json({
       success: true,
       data: entries,
     });
   } catch (error: any) {
     logger.error({ error: error.message }, "Error in getAllUserEntries");
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
