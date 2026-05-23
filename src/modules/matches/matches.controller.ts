@@ -96,8 +96,8 @@ export class MatchController {
       logger.error({ error, body: req.body }, "Error creating match");
 
       // Handle duplicate match number error
-      if (error?.message?.includes("Match number") && error?.message?.includes("already exists")) {
-        sendBadRequest(res, error.message);
+      if (error?.code === 11000 || (error?.message && error.message.includes("matchNumber") && error.message.includes("duplicate key"))) {
+        sendBadRequest(res, "Match number already exists. Please choose a different match number.");
         return;
       }
 
