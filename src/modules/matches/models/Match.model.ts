@@ -27,6 +27,7 @@ export interface IMatch extends Document {
     teamB: mongoose.Types.ObjectId[];
   };
   participantsCount: number;
+  playerPoints: Record<string, number>;
   quizzes: IMatchQuiz[];
   createdAt: Date;
   updatedAt: Date;
@@ -84,6 +85,11 @@ const MatchSchema = new Schema<IMatch>(
     participantsCount: {
       type: Number,
       default: 0,
+    },
+    playerPoints: {
+      type: Map,
+      of: Number,
+      default: {},
     },
     quizzes: {
       type: [

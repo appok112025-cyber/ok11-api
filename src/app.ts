@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -34,6 +36,15 @@ app.use(httpLogger);
 
 // Compression middleware
 app.use(compression());
+
+// Debug Request Logger
+app.use((req, res, next) => {
+  const log = `[${new Date().toISOString()}] ${req.method} ${req.url}\n`;
+  try {
+    fs.appendFileSync(path.resolve(process.cwd(), 'api-requests.txt'), log);
+  } catch (e) {}
+  next();
+});
 
 // Root endpoint
 app.get("/", (_req: Request, res: Response) => {
@@ -82,6 +93,7 @@ import userRoutes from "./modules/users/index.js";
 import { dashboardRoutes } from "./modules/dashboard/index.js";
 import notificationRoutes from "./modules/notifications/index.js";
 import { uploadRoutes } from "./modules/upload/index.js";
+import { contestRoutes } from "./modules/contests/index.js";
 
 app.use("/api/auth", authRoutes);
 app.use("/api/auth/admin", adminRoutes);
@@ -96,6 +108,7 @@ app.use("/api/site-content", siteContentRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/contests", contestRoutes);
 
 // 404 handler for unknown routes
 app.use((_req: Request, res: Response) => {

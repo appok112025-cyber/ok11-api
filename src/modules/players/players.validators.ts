@@ -6,11 +6,15 @@ const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid ObjectId f
 // Create player validation schema
 export const createPlayerSchema = z.object({
   name: z.string().min(1, "Player name is required").trim(),
+  imageUrl: z.string().trim().optional(),
+  role: z.enum(["wk", "bat", "ar", "bowl"]).default("bat"),
 });
 
 // Update player validation schema
 export const updatePlayerSchema = z.object({
   name: z.string().min(1, "Player name is required").trim().optional(),
+  imageUrl: z.string().trim().optional(),
+  role: z.enum(["wk", "bat", "ar", "bowl"]).optional(),
 });
 
 // Player ID parameter validation

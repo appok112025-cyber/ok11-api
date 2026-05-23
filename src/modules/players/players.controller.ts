@@ -10,9 +10,13 @@ export class PlayerController {
    */
   async getAllPlayers(req: Request, res: Response): Promise<void> {
     try {
-      const { search } = req.query;
-      const players = await playerService.getAllPlayers(search as string);
-      sendSuccess(res, players);
+      const { search, page, limit } = req.query;
+      const result = await playerService.getAllPlayers(
+        search as string,
+        page ? parseInt(page as string) : 1,
+        limit ? parseInt(limit as string) : 50
+      );
+      sendSuccess(res, result);
     } catch (error) {
       logger.error({ error }, "Error fetching players");
       throw error;

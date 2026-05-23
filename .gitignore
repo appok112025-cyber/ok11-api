@@ -195,3 +195,4 @@ coverage/
 test-*.js
 .jest-cache/
 .jest/
+api-requests.txt
