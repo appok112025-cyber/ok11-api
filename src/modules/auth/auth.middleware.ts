@@ -131,6 +131,7 @@ export const verifyFirebaseToken = async (
       displayName: user.displayName,
       role: user.role,
       blocked: user.blocked,
+      walletBalance: (user as any).walletBalance ?? 0,
     };
 
     logger.debug({ userId: user._id, email: user.email }, "User authenticated successfully");

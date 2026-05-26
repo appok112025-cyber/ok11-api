@@ -62,4 +62,18 @@ router.get("/me/all", verifyFirebaseToken, contestController.getAllUserEntries);
  */
 router.post("/:id/points", verifyAdminSession, contestController.updatePoints);
 
+/**
+ * @route   POST /api/contests/:id/pay-prize
+ * @desc    Pay prize money to a winner
+ * @access  Admin only
+ */
+router.post("/:id/pay-prize", verifyAdminSession, contestController.payPrize);
+
+/**
+ * @route   POST /api/contests/:id/pay-all-prizes
+ * @desc    Pay prize money to all winners
+ * @access  Admin only
+ */
+router.post("/:id/pay-all-prizes", verifyAdminSession, contestController.payAllPrizes);
+
 export default router;

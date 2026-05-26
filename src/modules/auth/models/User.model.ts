@@ -11,6 +11,7 @@ export type IUser = Document & {
   lastLoginAt?: Date;
   appVersion?: string;
   fcmToken?: string;
+  walletBalance?: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -54,6 +55,10 @@ const UserSchema = new Schema<IUser>(
     fcmToken: {
       type: String,
       trim: true,
+    },
+    walletBalance: {
+      type: Number,
+      default: 0,
     },
   },
   {

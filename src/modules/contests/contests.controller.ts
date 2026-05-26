@@ -224,3 +224,42 @@ export const getAllUserEntries = async (req: Request, res: Response): Promise<Re
     return res.status(500).json({ error: error.message });
   }
 };
+
+/**
+ * Pay prize money to a user
+ */
+export const payPrize = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
+    await contestService.payPrize(id as string, userId as string);
+    return res.json({
+      success: true,
+      message: "Prize money sent successfully",
+    });
+  } catch (error: any) {
+    logger.error({ error: error.message }, "Error in payPrize");
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Pay prize money to all winners of a contest
+ */
+export const payAllPrizes = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { id } = req.params;
+    const result = await contestService.payAllPrizes(id as string);
+    return res.json({
+      success: true,
+      message: `Successfully paid prizes to ${result.count} winners (Total: ₹${result.totalAmount})`,
+      data: result,
+    });
+  } catch (error: any) {
+    logger.error({ error: error.message }, "Error in payAllPrizes");
+    return res.status(500).json({ error: error.message });
+  }
+};

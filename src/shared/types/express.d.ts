@@ -11,6 +11,7 @@ declare global {
         displayName?: string;
         role: string;
         blocked: boolean;
+        walletBalance?: number;
       };
       admin?: {
         _id: string;

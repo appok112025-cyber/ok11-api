@@ -186,12 +186,27 @@ export class ContestService {
    * Get leaderboard for a contest
    */
   async getLeaderboard(contestId: string): Promise<any[]> {
-    return await ContestEntry.find({
+    const entries = await ContestEntry.find({
       contestId: new mongoose.Types.ObjectId(contestId),
     })
-      .sort({ points: -1 })
+      .sort({ points: -1, updatedAt: 1 })
       .populate("userId", "displayName photoURL email")
       .limit(100);
+
+    let currentRank = 1;
+    let currentPoints = -1;
+    let actualRank = 1;
+
+    return entries.map((entry) => {
+      const entryObj = entry.toObject();
+      if (entryObj.points !== currentPoints) {
+        currentRank = actualRank;
+        currentPoints = entryObj.points;
+      }
+      entryObj.rank = currentRank;
+      actualRank++;
+      return entryObj;
+    });
   }
 
   /**
@@ -292,7 +307,7 @@ export class ContestService {
    */
   async getAllUserEntries(userId: string): Promise<any[]> {
     try {
-      return await ContestEntry.find({
+      const entries = await ContestEntry.find({
         userId: new mongoose.Types.ObjectId(userId),
       })
         .populate({
@@ -306,9 +321,134 @@ export class ContestService {
           },
         })
         .sort({ createdAt: -1 });
+
+      const enrichedEntries = [];
+      for (const entry of entries) {
+        const entryObj = entry.toObject();
+        if (!entryObj.rank || entryObj.rank === 0) {
+          const count = await ContestEntry.countDocuments({
+            contestId: entry.contestId,
+            points: { $gt: entry.points },
+          });
+          entryObj.rank = count + 1;
+        }
+        enrichedEntries.push(entryObj);
+      }
+      return enrichedEntries;
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * Pay prize to a user for a contest
+   */
+  async payPrize(contestId: string, userId: string): Promise<boolean> {
+    const contest = await Contest.findById(contestId);
+    if (!contest) {
+      throw new Error("Contest not found");
+    }
+
+    const entry = await ContestEntry.findOne({
+      contestId: new mongoose.Types.ObjectId(contestId),
+      userId: new mongoose.Types.ObjectId(userId),
+    });
+
+    if (!entry) {
+      throw new Error("Contest entry not found");
+    }
+
+    if (entry.paid) {
+      throw new Error("Prize already paid");
+    }
+
+    // Calculate prize amount based on rank
+    let prizeAmount = 0;
+    if (contest.prizeBreakdown && contest.prizeBreakdown.length > 0) {
+      const match = contest.prizeBreakdown.find(
+        (r) => entry.rank >= r.fromRank && entry.rank <= r.toRank
+      );
+      if (match) {
+        prizeAmount = match.prizeAmount;
+      }
+    } else {
+      // Fallback: rank 1 wins firstPrize
+      if (entry.rank === 1) {
+        prizeAmount = contest.firstPrize;
+      }
+    }
+
+    if (prizeAmount <= 0) {
+      throw new Error("User did not win any prize");
+    }
+
+    // Load User and increment walletBalance
+    const { User } = await import("../auth/models/User.model.js");
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const currentBalance = (user as any).walletBalance || 0;
+    (user as any).walletBalance = currentBalance + prizeAmount;
+    await user.save();
+
+    entry.paid = true;
+    await entry.save();
+
+    return true;
+  }
+
+  /**
+   * Pay prizes to all winners in a contest
+   */
+  async payAllPrizes(contestId: string): Promise<{ count: number; totalAmount: number }> {
+    const contest = await Contest.findById(contestId);
+    if (!contest) {
+      throw new Error("Contest not found");
+    }
+
+    const entries = await ContestEntry.find({
+      contestId: new mongoose.Types.ObjectId(contestId),
+      paid: { $ne: true },
+    });
+
+    const { User } = await import("../auth/models/User.model.js");
+    let count = 0;
+    let totalAmount = 0;
+
+    for (const entry of entries) {
+      let prizeAmount = 0;
+      if (contest.prizeBreakdown && contest.prizeBreakdown.length > 0) {
+        const match = contest.prizeBreakdown.find(
+          (r) => entry.rank >= r.fromRank && entry.rank <= r.toRank
+        );
+        if (match) {
+          prizeAmount = match.prizeAmount;
+        }
+      } else {
+        if (entry.rank === 1) {
+          prizeAmount = contest.firstPrize;
+        }
+      }
+
+      if (prizeAmount > 0) {
+        const user = await User.findById(entry.userId);
+        if (user) {
+          const currentBalance = (user as any).walletBalance || 0;
+          (user as any).walletBalance = currentBalance + prizeAmount;
+          await user.save();
+
+          entry.paid = true;
+          await entry.save();
+
+          count++;
+          totalAmount += prizeAmount;
+        }
+      }
+    }
+
+    return { count, totalAmount };
   }
 }
 

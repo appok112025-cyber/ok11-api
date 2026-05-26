@@ -9,6 +9,7 @@ export interface IContestEntry extends Document {
   viceCaptainId: mongoose.Types.ObjectId;
   points: number;
   rank: number;
+  paid: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,6 +57,10 @@ const ContestEntrySchema = new Schema<IContestEntry>(
     rank: {
       type: Number,
       default: 0,
+    },
+    paid: {
+      type: Boolean,
+      default: false,
     },
   },
   {
