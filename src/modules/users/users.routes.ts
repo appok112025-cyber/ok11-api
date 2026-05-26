@@ -61,4 +61,16 @@ router.put(
   userController.unblockUser.bind(userController)
 );
 
+/**
+ * @route   POST /api/users/:id/add-money
+ * @desc    Add money to user's wallet
+ * @access  Admin only
+ */
+router.post(
+  "/:id/add-money",
+  verifyAdminSession,
+  validateParams(userIdParamSchema),
+  userController.addMoney.bind(userController)
+);
+
 export default router;

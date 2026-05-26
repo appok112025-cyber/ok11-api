@@ -207,6 +207,26 @@ class UserService {
       throw error;
     }
   }
+
+  /**
+   * Add money to a user's wallet
+   */
+  async addMoney(userId: string, amount: number): Promise<IUser> {
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error("User not found");
+      }
+      const currentBalance = (user as any).walletBalance || 0;
+      (user as any).walletBalance = currentBalance + amount;
+      await user.save();
+      logger.info({ userId, amount }, "Money added to user successfully");
+      return user;
+    } catch (error) {
+      logger.error({ error, userId, amount }, "Error adding money to user");
+      throw error;
+    }
+  }
 }
 
 export const userService = new UserService();

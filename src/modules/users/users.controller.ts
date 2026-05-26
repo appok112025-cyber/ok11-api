@@ -99,6 +99,30 @@ export class UserController {
       throw error;
     }
   }
+
+  /**
+   * Add money to user's wallet
+   * Admin only
+   */
+  async addMoney(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { amount } = req.body;
+      if (typeof amount !== "number" || amount <= 0) {
+        res.status(400).json({ success: false, message: "Invalid amount" });
+        return;
+      }
+      const user = await userService.addMoney(id, amount);
+      sendSuccess(res, user);
+    } catch (error) {
+      if (error instanceof Error && error.message === "User not found") {
+        sendNotFound(res, "User not found");
+        return;
+      }
+      logger.error({ error, userId: req.params.id }, "Error adding money to user");
+      throw error;
+    }
+  }
 }
 
 export const userController = new UserController();

@@ -39,6 +39,33 @@ export class ContestService {
   }
 
   /**
+   * Get all contests with pagination
+   */
+  async getAllContests(
+    page: number = 1,
+    limit: number = 100
+  ): Promise<PaginatedResult<IContest>> {
+    const skip = calculateSkip(page, limit);
+
+    const [contests, total] = await Promise.all([
+      Contest.find({})
+        .populate({
+          path: "matchId",
+          populate: [
+            { path: "teamA", select: "name" },
+            { path: "teamB", select: "name" },
+          ],
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Contest.countDocuments({}),
+    ]);
+
+    return createPaginatedResponse(contests, total, page, limit);
+  }
+
+  /**
    * Create a new contest
    */
   async createContest(data: CreateContestDTO): Promise<IContest> {
@@ -234,56 +261,68 @@ export class ContestService {
     playerPoints: Record<string, number>
   ): Promise<boolean> {
     try {
-      // 1. Persist the points to the Match model so they can be retrieved for the form
+      // 1. Persist the points to the Match model
       const contest = await Contest.findById(contestId);
-      if (contest && contest.matchId) {
-        await Match.findByIdAndUpdate(contest.matchId, {
-          $set: { playerPoints: playerPoints }
-        });
+      if (!contest || !contest.matchId) {
+        throw new Error("Contest or Match not found");
       }
 
-      const entries = await ContestEntry.find({
-        contestId: new mongoose.Types.ObjectId(contestId),
+      const matchId = contest.matchId;
+
+      await Match.findByIdAndUpdate(matchId, {
+        $set: { playerPoints: playerPoints }
       });
 
-      for (const entry of entries) {
-        let totalPoints = 0;
+      // 2. Find all contests for this match
+      const allContests = await Contest.find({ matchId });
 
-        // Iterate over players and sum points
-        for (const playerIdObj of entry.players) {
-          const playerId = playerIdObj.toString();
-          const basePoints = playerPoints[playerId] || 0;
+      for (const targetContest of allContests) {
+        const targetContestId = targetContest._id;
 
-          if (playerId === entry.captainId.toString()) {
-            totalPoints += basePoints * 2; // Captain gets 2x
-          } else if (playerId === entry.viceCaptainId.toString()) {
-            totalPoints += basePoints * 1.5; // Vice-Captain gets 1.5x
-          } else {
-            totalPoints += basePoints;
+        // 3. Find and update points for all entries in this contest
+        const entries = await ContestEntry.find({
+          contestId: targetContestId,
+        });
+
+        for (const entry of entries) {
+          let totalPoints = 0;
+
+          // Iterate over players and sum points
+          for (const playerIdObj of entry.players) {
+            const playerId = playerIdObj.toString();
+            const basePoints = playerPoints[playerId] || 0;
+
+            if (playerId === entry.captainId.toString()) {
+              totalPoints += basePoints * 2; // Captain gets 2x
+            } else if (playerId === entry.viceCaptainId.toString()) {
+              totalPoints += basePoints * 1.5; // Vice-Captain gets 1.5x
+            } else {
+              totalPoints += basePoints;
+            }
           }
+
+          entry.points = totalPoints;
+          await entry.save();
         }
 
-        entry.points = totalPoints;
-        await entry.save();
-      }
+        // 4. Re-calculate ranks for this contest
+        const sortedEntries = await ContestEntry.find({
+          contestId: targetContestId,
+        }).sort({ points: -1, updatedAt: 1 });
 
-      // Re-calculate ranks by sorting
-      const sortedEntries = await ContestEntry.find({
-        contestId: new mongoose.Types.ObjectId(contestId),
-      }).sort({ points: -1, updatedAt: 1 });
+        let currentRank = 1;
+        let currentPoints = -1;
+        let actualRank = 1;
 
-      let currentRank = 1;
-      let currentPoints = -1;
-      let actualRank = 1;
-
-      for (const entry of sortedEntries) {
-        if (entry.points !== currentPoints) {
-          currentRank = actualRank;
-          currentPoints = entry.points;
+        for (const entry of sortedEntries) {
+          if (entry.points !== currentPoints) {
+            currentRank = actualRank;
+            currentPoints = entry.points;
+          }
+          entry.rank = currentRank;
+          await entry.save();
+          actualRank++;
         }
-        entry.rank = currentRank;
-        await entry.save();
-        actualRank++;
       }
 
       return true;
@@ -364,12 +403,13 @@ export class ContestService {
 
     // Calculate prize amount based on rank
     let prizeAmount = 0;
+    let rangeIndex = -1;
     if (contest.prizeBreakdown && contest.prizeBreakdown.length > 0) {
-      const match = contest.prizeBreakdown.find(
+      rangeIndex = contest.prizeBreakdown.findIndex(
         (r) => entry.rank >= r.fromRank && entry.rank <= r.toRank
       );
-      if (match) {
-        prizeAmount = match.prizeAmount;
+      if (rangeIndex !== -1) {
+        prizeAmount = contest.prizeBreakdown[rangeIndex].prizeAmount;
       }
     } else {
       // Fallback: rank 1 wins firstPrize
@@ -395,6 +435,21 @@ export class ContestService {
 
     entry.paid = true;
     await entry.save();
+
+    // Remove the range from prizeBreakdown if there are no other unpaid users in it
+    if (rangeIndex !== -1 && contest.prizeBreakdown) {
+      const range = contest.prizeBreakdown[rangeIndex];
+      const otherUnpaid = await ContestEntry.findOne({
+        contestId: contest._id,
+        paid: { $ne: true },
+        rank: { $gte: range.fromRank, $lte: range.toRank },
+        userId: { $ne: user._id }
+      });
+      if (!otherUnpaid) {
+        contest.prizeBreakdown.splice(rangeIndex, 1);
+        await contest.save();
+      }
+    }
 
     return true;
   }
@@ -446,6 +501,12 @@ export class ContestService {
           totalAmount += prizeAmount;
         }
       }
+    }
+
+    // Now remove the distribution from the prize distribution!
+    if (count > 0 && contest.prizeBreakdown) {
+      contest.prizeBreakdown = [];
+      await contest.save();
     }
 
     return { count, totalAmount };

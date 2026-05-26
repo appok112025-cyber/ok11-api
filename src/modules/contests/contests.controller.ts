@@ -9,17 +9,21 @@ export const getContests = async (req: Request, res: Response): Promise<Response
   try {
     const { matchId } = req.query;
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
+    const limit = parseInt(req.query.limit as string) || 50;
 
-    if (!matchId) {
-      return res.status(400).json({ error: "matchId is required" });
+    let result;
+    if (matchId) {
+      result = await contestService.getContestsByMatch(
+        matchId as string,
+        page,
+        limit
+      );
+    } else {
+      result = await contestService.getAllContests(
+        page,
+        limit
+      );
     }
-
-    const result = await contestService.getContestsByMatch(
-      matchId as string,
-      page,
-      limit
-    );
 
     return res.json({
       success: true,
@@ -122,6 +126,12 @@ export const getLeaderboard = async (req: Request, res: Response): Promise<Respo
   try {
     const { id } = req.params;
     const leaderboard = await contestService.getLeaderboard(id);
+
+    // Disable HTTP caching for mobile and web browsers
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+
     return res.json({
       success: true,
       data: leaderboard,
