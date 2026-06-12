@@ -115,6 +115,15 @@ export class NotificationController {
         sendNotFound(res, "Notification not found");
         return;
       }
+      if (error instanceof Error && error.message.includes("Failed to send notification via FCM")) {
+        logger.error({ error: error.message, notificationId: req.params.id }, "FCM send failed");
+        res.status(502).json({
+          error: "Failed to send notification. Please check FCM configuration.",
+          code: "FCM_SEND_FAILED",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       logger.error({ error, notificationId: req.params.id }, "Error sending notification");
       throw error;
     }

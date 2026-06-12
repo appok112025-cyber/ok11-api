@@ -27,6 +27,9 @@ const envSchema = z.object({
       return uri;
     }),
   FIREBASE_PROJECT_ID: z.string().min(1),
+  FIREBASE_SERVICE_ACCOUNT: z.string().optional(),
+  FIREBASE_PRIVATE_KEY: z.string().optional(),
+  FIREBASE_CLIENT_EMAIL: z.string().optional(),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default("24h"),
   CORS_ORIGIN: z.string().default("http://localhost:5925"),

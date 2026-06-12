@@ -125,18 +125,28 @@ class NotificationService {
 
       const { fcmService } = await import("../../shared/services/fcm.service.js");
 
-      const payload = {
+      const payload: any = {
         title: notification.title,
         body: notification.body,
-        imageUrl: notification.image,
         data: {
           type: "notification",
           notificationId: (notification._id as any).toString(),
         },
       };
 
+      // Only include imageUrl if it's a non-empty string to avoid Firebase SDK errors
+      if (notification.image && notification.image.trim()) {
+        payload.imageUrl = notification.image.trim();
+      }
+
       const topic = "general";
+      logger.info({ notificationId, title: notification.title, topic, hasImage: !!payload.imageUrl }, "Attempting to send FCM notification");
       const messageId = await fcmService.sendToTopic(topic, payload);
+
+      if (!messageId) {
+        throw new Error("Failed to send notification via FCM. Check FCM configuration and service account credentials.");
+      }
+
       logger.info(
         {
           notificationId,

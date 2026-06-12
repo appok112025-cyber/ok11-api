@@ -9,6 +9,8 @@ import env from "./shared/config/env.js";
 import { httpLogger } from "./shared/config/logger.js";
 import { errorHandler } from "./shared/middleware/errorHandler.js";
 import { rateLimiter } from "./shared/middleware/rateLimiter.js";
+// Initialize Firebase Admin SDK (must be before any FCM service usage)
+import "./shared/config/firebase.js";
 
 const app: Express = express();
 

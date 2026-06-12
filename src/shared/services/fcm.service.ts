@@ -162,13 +162,19 @@ class FCMService {
    */
   async sendToTopic(topic: string, payload: NotificationPayload): Promise<string | null> {
     try {
+      const notification: admin.messaging.Notification = {
+        title: payload.title,
+        body: payload.body,
+      };
+
+      // Only include imageUrl if it's a non-empty string
+      if (payload.imageUrl && payload.imageUrl.trim()) {
+        notification.imageUrl = payload.imageUrl.trim();
+      }
+
       const message: admin.messaging.Message = {
         topic,
-        notification: {
-          title: payload.title,
-          body: payload.body,
-          imageUrl: payload.imageUrl,
-        },
+        notification,
         data: payload.data || {},
         android: {
           priority: "high" as const,
@@ -183,8 +189,8 @@ class FCMService {
       const messageId = await admin.messaging().send(message);
       logger.info({ topic, messageId }, "FCM topic notification sent successfully");
       return messageId;
-    } catch (error) {
-      logger.error({ error, topic }, "Error sending FCM topic notification");
+    } catch (error: any) {
+      logger.error({ error: error.message || error, errorCode: error.code, topic }, "Error sending FCM topic notification");
       return null;
     }
   }
