@@ -203,14 +203,12 @@ class FCMService {
     teamA: string,
     teamB: string,
     matchNumber: number,
-    teamAImageUrl?: string,
-    teamBImageUrl?: string
+    _teamAImageUrl?: string,
+    _teamBImageUrl?: string
   ): Promise<string | null> {
-    const imageUrl = teamAImageUrl || teamBImageUrl;
     return this.sendToTopic("general", {
       title: "🏏 New Match Published!",
       body: `${teamA} vs ${teamB} - Match #${matchNumber}`,
-      imageUrl,
       data: {
         type: "new_match",
         matchId,
@@ -226,14 +224,12 @@ class FCMService {
     matchId: string,
     teamA: string,
     teamB: string,
-    teamAImageUrl?: string,
-    teamBImageUrl?: string
+    _teamAImageUrl?: string,
+    _teamBImageUrl?: string
   ): Promise<string | null> {
-    const imageUrl = teamAImageUrl || teamBImageUrl;
     return this.sendToTopic("general", {
       title: "🔴 Match is LIVE!",
       body: `${teamA} vs ${teamB} is now live!`,
-      imageUrl,
       data: {
         type: "match_live",
         matchId,
@@ -249,14 +245,12 @@ class FCMService {
     matchId: string,
     teamA: string,
     teamB: string,
-    teamAImageUrl?: string,
-    teamBImageUrl?: string
+    _teamAImageUrl?: string,
+    _teamBImageUrl?: string
   ): Promise<string | null> {
-    const imageUrl = teamAImageUrl || teamBImageUrl;
     return this.sendToTopic("general", {
       title: "⏰ Match Starting Soon!",
       body: `${teamA} vs ${teamB} starts in 30 minutes. Submit your predictions now!`,
-      imageUrl,
       data: {
         type: "match_reminder",
         matchId,
@@ -273,16 +267,14 @@ class FCMService {
     teamA: string,
     teamB: string,
     score?: string,
-    teamAImageUrl?: string,
-    teamBImageUrl?: string
+    _teamAImageUrl?: string,
+    _teamBImageUrl?: string
   ): Promise<string | null> {
     // Send to match-specific topic (users subscribe when they submit)
     const scoreText = score ? ` (${score})` : "";
-    const imageUrl = teamAImageUrl || teamBImageUrl;
     return this.sendToTopic(`match_${matchId}`, {
       title: "📊 Match Results Available!",
       body: `${teamA} vs ${teamB}${scoreText} - Check your score now!`,
-      imageUrl,
       data: {
         type: "match_result",
         matchId,
