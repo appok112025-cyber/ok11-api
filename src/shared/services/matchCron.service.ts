@@ -6,7 +6,7 @@ import logger from "../config/logger.js";
 
 class MatchCronService {
   private isRunning = false;
-  private notificationSentMatches = new Set<string>();
+  private notificationSentMatches = new Set<string>();    // 30-min reminder sent
   private isProcessing = false;
 
   /**
@@ -31,13 +31,14 @@ class MatchCronService {
   }
 
   /**
-   * Check and send 30-minute reminder notifications
+   * Check and send 30-minute and 15-minute reminder notifications
    */
   private async checkAndSendReminders(): Promise<void> {
     try {
       const nowIST = this.getCurrentIST();
       const thirtyMinutesFromNowIST = new Date(nowIST.getTime() + 30 * 60 * 1000);
 
+      // Fetch matches starting within the next 30 minutes
       const upcomingMatches = await Match.find({
         status: "Upcoming",
         matchTime: {
@@ -51,21 +52,21 @@ class MatchCronService {
       for (const match of upcomingMatches) {
         const matchId = (match._id as any).toString();
 
-        if (this.notificationSentMatches.has(matchId)) {
-          continue;
-        }
-
         const matchISTTime = new Date(match.matchTime.getTime() + 5.5 * 60 * 60 * 1000);
         const timeUntilMatch = matchISTTime.getTime() - nowIST.getTime();
         const minutesUntilMatch = Math.floor(timeUntilMatch / (60 * 1000));
 
-        if (minutesUntilMatch <= 30 && minutesUntilMatch >= 20) {
-          const teamAName = (match.teamA as any)?.name || "Team A";
-          const teamBName = (match.teamB as any)?.name || "Team B";
-          const teamAImageUrl = (match.teamA as any)?.imageUrl;
-          const teamBImageUrl = (match.teamB as any)?.imageUrl;
+        const teamAName = (match.teamA as any)?.name || "Team A";
+        const teamBName = (match.teamB as any)?.name || "Team B";
+        const teamAImageUrl = (match.teamA as any)?.imageUrl;
+        const teamBImageUrl = (match.teamB as any)?.imageUrl;
 
-          // Send to general topic for all users
+        // --- First reminder: 15-30 minutes before ---
+        if (
+          minutesUntilMatch <= 30 &&
+          minutesUntilMatch > 15 &&
+          !match.notification30Sent
+        ) {
           await fcmService.sendMatchReminderNotification(
             matchId,
             teamAName,
@@ -74,12 +75,14 @@ class MatchCronService {
             teamBImageUrl
           );
 
-          this.notificationSentMatches.add(matchId);
+          await Match.updateOne({ _id: match._id }, { $set: { notification30Sent: true } });
           logger.info(
             { matchId, matchNumber: match.matchNumber, minutesUntilMatch },
             "30-minute match reminder sent to general topic"
           );
         }
+
+
       }
     } catch (error) {
       logger.error({ error }, "Error checking and sending match reminders");
@@ -93,13 +96,11 @@ class MatchCronService {
   private async checkAndUpdateMatchStatus(): Promise<void> {
     try {
       const nowIST = this.getCurrentIST();
-      const fiveMinutesAgoIST = new Date(nowIST.getTime() - 5 * 60 * 1000);
       const twoMinutesFromNowIST = new Date(nowIST.getTime() + 2 * 60 * 1000);
 
       const matchesToUpdate = await Match.find({
         status: "Upcoming",
         matchTime: {
-          $gte: this.istToUTC(fiveMinutesAgoIST),
           $lte: this.istToUTC(twoMinutesFromNowIST),
         },
       })
@@ -133,7 +134,9 @@ class MatchCronService {
       }).select("_id");
 
       const idsToRemove = completedOrCancelled.map((m) => (m._id as any).toString());
-      idsToRemove.forEach((id) => this.notificationSentMatches.delete(id));
+      idsToRemove.forEach((id) => {
+        this.notificationSentMatches.delete(id);
+      });
 
       if (idsToRemove.length > 0) {
         logger.info(

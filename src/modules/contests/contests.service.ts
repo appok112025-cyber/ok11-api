@@ -31,7 +31,7 @@ export class ContestService {
     const skip = calculateSkip(page, limit);
 
     const [contests, total] = await Promise.all([
-      Contest.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Contest.find(query).sort({ createdAt: 1 }).skip(skip).limit(limit),
       Contest.countDocuments(query),
     ]);
 
@@ -94,8 +94,8 @@ export class ContestService {
       const { notificationService } = await import("../notifications/notifications.service.js");
 
       // 3. Create a notification entry in the database
-      const title = `New Contest: ${data.name}`;
-      const body = `Join the new contest '${data.name}'${matchContext}! Entry Fee: ₹${data.entryFee}. First Prize: ₹${data.firstPrize}.`;
+      const title = `Match Published`;
+      const body = `Join the contest${matchContext}! Entry Fee: ₹${data.entryFee}. First Prize: ₹${data.firstPrize}.`;
       const notification = await notificationService.createNotification({ title, body });
 
       // 4. Dispatch notification to all users subscribed to the general topic

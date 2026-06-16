@@ -29,6 +29,8 @@ export interface IMatch extends Document {
   participantsCount: number;
   playerPoints: Record<string, number>;
   quizzes: IMatchQuiz[];
+  notification30Sent?: boolean;
+  notification15Sent?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -106,6 +108,14 @@ const MatchSchema = new Schema<IMatch>(
         },
       ],
       default: [],
+    },
+    notification30Sent: {
+      type: Boolean,
+      default: false,
+    },
+    notification15Sent: {
+      type: Boolean,
+      default: false,
     },
   },
   {
