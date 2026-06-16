@@ -94,7 +94,7 @@ export class ContestService {
       const { notificationService } = await import("../notifications/notifications.service.js");
 
       // 3. Create a notification entry in the database
-      const title = `Match Published`;
+      const title = `🏏 New Match Published!`;
       const body = `Join the contest${matchContext}! Entry Fee: ₹${data.entryFee}. First Prize: ₹${data.firstPrize}.`;
       const notification = await notificationService.createNotification({ title, body });
 

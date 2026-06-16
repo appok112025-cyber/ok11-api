@@ -11,7 +11,6 @@ export interface NotificationPayload {
 
 export type NotificationType =
   | "general" // Admin general notifications
-  | "new_match" // New match published
   | "match_live" // Match is now live
   | "match_reminder" // 30 min before match
   | "match_result"; // Match completed - result notification
@@ -193,28 +192,6 @@ class FCMService {
       logger.error({ error: error.message || error, errorCode: error.code, topic }, "Error sending FCM topic notification");
       return null;
     }
-  }
-
-  /**
-   * Send new match published notification to general topic
-   */
-  async sendNewMatchNotification(
-    matchId: string,
-    teamA: string,
-    teamB: string,
-    matchNumber: number,
-    _teamAImageUrl?: string,
-    _teamBImageUrl?: string
-  ): Promise<string | null> {
-    return this.sendToTopic("general", {
-      title: "🏏 New Match Published!",
-      body: `${teamA} vs ${teamB} - Match #${matchNumber}`,
-      data: {
-        type: "new_match",
-        matchId,
-        action: "view_match",
-      },
-    });
   }
 
   /**

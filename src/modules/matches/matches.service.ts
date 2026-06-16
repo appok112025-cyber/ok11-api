@@ -72,35 +72,6 @@ export class MatchService {
 
     const savedMatch = await match.save();
 
-    // Populate team names for notification
-    const populatedMatch = await Match.findById(savedMatch._id).populate("teamA").populate("teamB");
-
-    const teamAName = (populatedMatch?.teamA as any)?.name || data.teamA;
-    const teamBName = (populatedMatch?.teamB as any)?.name || data.teamB;
-    const teamAImageUrl = (populatedMatch?.teamA as any)?.imageUrl;
-    const teamBImageUrl = (populatedMatch?.teamB as any)?.imageUrl;
-
-    try {
-      const { fcmService } = await import("../../shared/services/fcm.service.js");
-      await fcmService.sendNewMatchNotification(
-        (savedMatch._id as any).toString(),
-        teamAName,
-        teamBName,
-        data.matchNumber,
-        teamAImageUrl,
-        teamBImageUrl
-      );
-      logger.info(
-        { matchId: (savedMatch._id as any).toString(), matchNumber: data.matchNumber },
-        "New match notification sent"
-      );
-    } catch (error) {
-      logger.error(
-        { error, matchId: (savedMatch._id as any).toString() },
-        "Failed to send new match notification"
-      );
-    }
-
     return savedMatch;
   }
 
