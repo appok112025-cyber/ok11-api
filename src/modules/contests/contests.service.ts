@@ -78,29 +78,42 @@ export class ContestService {
 
     // Trigger push notification for new contest creation asynchronously
     try {
-      // 1. Fetch match and populate team details for context
-      const match = await Match.findById(data.matchId)
-        .populate("teamA")
-        .populate("teamB");
+      // Check if this is the first contest created for this match
+      const existingContestsCount = await Contest.countDocuments({
+        matchId: savedContest.matchId,
+        _id: { $ne: savedContest._id },
+      });
 
-      let matchContext = "";
-      if (match) {
-        const teamAName = (match.teamA as any)?.name || "Team A";
-        const teamBName = (match.teamB as any)?.name || "Team B";
-        matchContext = ` for ${teamAName} vs ${teamBName}`;
+      if (existingContestsCount === 0) {
+        // 1. Fetch match and populate team details for context
+        const match = await Match.findById(data.matchId)
+          .populate("teamA")
+          .populate("teamB");
+
+        let matchContext = "";
+        if (match) {
+          const teamAName = (match.teamA as any)?.name || "Team A";
+          const teamBName = (match.teamB as any)?.name || "Team B";
+          matchContext = ` for ${teamAName} vs ${teamBName}`;
+        }
+
+        // 2. Dynamically import notification service to avoid circular dependency
+        const { notificationService } = await import("../notifications/notifications.service.js");
+
+        // 3. Create a notification entry in the database
+        const title = `🏏 New Match Published!`;
+        const body = `Join the contest${matchContext}! Entry Fee: ₹${data.entryFee}. First Prize: ₹${data.firstPrize}.`;
+        const notification = await notificationService.createNotification({ title, body });
+
+        // 4. Dispatch notification to all users subscribed to the general topic
+        await notificationService.sendNotification((notification as any)._id.toString());
+        logger.info({ contestId: savedContest._id }, "Notification sent successfully for newly created contest");
+      } else {
+        logger.info(
+          { contestId: savedContest._id, matchId: savedContest.matchId },
+          "Skipping notification as this is not the first contest for this match"
+        );
       }
-
-      // 2. Dynamically import notification service to avoid circular dependency
-      const { notificationService } = await import("../notifications/notifications.service.js");
-
-      // 3. Create a notification entry in the database
-      const title = `🏏 New Match Published!`;
-      const body = `Join the contest${matchContext}! Entry Fee: ₹${data.entryFee}. First Prize: ₹${data.firstPrize}.`;
-      const notification = await notificationService.createNotification({ title, body });
-
-      // 4. Dispatch notification to all users subscribed to the general topic
-      await notificationService.sendNotification((notification as any)._id.toString());
-      logger.info({ contestId: savedContest._id }, "Notification sent successfully for newly created contest");
     } catch (notificationError: any) {
       // Prevent notification dispatch errors from breaking/rolling back contest creation
       logger.error(
